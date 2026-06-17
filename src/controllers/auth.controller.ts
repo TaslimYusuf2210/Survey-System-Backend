@@ -21,3 +21,20 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+export const getMe = asyncHandler(async (req: Request, res: Response) => {
+  const user = await authService.getUser(req.userId!);
+
+  res.status(200).json({
+    success: true,
+    message: "User fetched successfully",
+    data: user,
+  });
+});
+
+export const logout = asyncHandler(async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+});
