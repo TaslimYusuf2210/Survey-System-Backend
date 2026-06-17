@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -16,5 +14,135 @@ model User {
   email     String   @unique
   userName  String
   password  String
+  avatarUrl String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  surveys         Survey[]
+  participants    Participant[]
+  notifications   Notification[]
+  settings        UserSettings?
+}
+
+model Survey {
+  id             String   @id @default(uuid())
+  creatorId      String
+  title          String
+  description    String?
+  category       String?
+  targetAudience String?
+  goal           String?
+  usage          String?
+  status         String   @default("draft")
+  responseLimit  Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  creator     User              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  sections    SurveySection[]
+  participants Participant[]
+  responses   SurveyResponse[]
+}
+
+model SurveySection {
+  id        String   @id @default(uuid())
+  surveyId  String
+  title     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  survey   Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions SurveyQuestion[]
+}
+
+model SurveyQuestion {
+  id        String @id @default(uuid())
+  sectionId String
+  text      String
+  type      String // text, multiple_choice, single_choice, likert_scale, yes_no
+  required  Boolean @default(true)
+  sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+
+  section     SurveySection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  options     QuestionOption[]
+  answers     ResponseAnswer[]
+}
+
+model QuestionOption {
+  id         String @id @default(uuid())
+  questionId String
+  value      String
+  sortOrder  Int    @default(0)
+
+  question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Participant {
+  id        String   @id @default(uuid())
+  surveyId  String
+  userId    String?
+  email     String?
+  name      String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+
+  survey  Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user    User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  responses SurveyResponse[]
+
+  @@unique([surveyId, email])
+}
+
+model SurveyResponse {
+  id               String    @id @default(uuid())
+  surveyId         String
+  participantId    String?
+  respondentEmail  String?
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  timeTakenSec     Int?
+  completionRate   Float?
+
+  survey      Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  participant Participant?     @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  answers     ResponseAnswer[]
+}
+
+model ResponseAnswer {
+  id            String  @id @default(uuid())
+  responseId    String
+  questionId    String
+  answerText    String?
+  answerOptions String? // JSON string array of selected option IDs
+  likertValue   Int?
+  yesNoValue    Boolean?
+  createdAt     DateTime @default(now())
+
+  response SurveyResponse  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question SurveyQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String?
+  type      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id           String @id @default(uuid())
+  userId       String @unique
+  appearance   String @default("light")
+  accentColor  String @default("blue")
+  themePicture String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
