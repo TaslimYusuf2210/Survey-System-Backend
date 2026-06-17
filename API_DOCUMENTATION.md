@@ -2,7 +2,10 @@
 
 > **Project:** Eye_Patch Survey System  
 > **Tech Stack (Frontend):** React 19, TypeScript, Vite, Tailwind CSS v4, Supabase (current auth/db), React Router v7  
-> **Proposed Backend:** RESTful API (Node.js/Express, Python/FastAPI, or any preferred stack)
+> **Backend:** Node.js/Express, TypeScript, Prisma (SQLite)  
+> **API Base URL:** `http://localhost:3000/api/v1`  
+> **Interactive Docs (Swagger UI):** [`http://localhost:3000/api/v1/docs`](http://localhost:3000/api/v1/docs)  
+> **Raw OpenAPI Spec:** [`http://localhost:3000/api/v1/docs/openapi.json`](http://localhost:3000/api/v1/docs/openapi.json)
 
 ---
 

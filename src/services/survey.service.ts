@@ -1,0 +1,298 @@
+import { prisma } from "../config/prisma.js";
+import { AppError } from "../middleware/errorHandler.js";
+import type {
+  CreateSurveyInput,
+  UpdateSurveyInput,
+  UpdateStatusInput,
+  ListSurveysQuery,
+} from "../validators/survey.validator.js";
+
+// ─── List Surveys ────────────────────────────────────────
+export const listSurveys = async (userId: string, query: ListSurveysQuery) => {
+  const { status, category, search, page, limit, sort_by, order } = query;
+
+  const where: Record<string, unknown> = { creatorId: userId };
+
+  if (status) where["status"] = status;
+  if (category) where["category"] = category;
+  if (search) {
+    where["title"] = { contains: search };
+  }
+
+  const sortField = sort_by === "created_at" ? "createdAt" : sort_by === "title" ? "title" : "status";
+
+  const [data, total] = await Promise.all([
+    prisma.survey.findMany({
+      where,
+      orderBy: { [sortField]: order },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        _count: { select: { responses: true } },
+      },
+    }),
+    prisma.survey.count({ where }),
+  ]);
+
+  return {
+    data: data.map((survey) => ({
+      id: survey.id,
+      title: survey.title,
+      status: survey.status,
+      category: survey.category,
+      response_count: survey._count.responses,
+      created_at: survey.createdAt.toISOString(),
+      updated_at: survey.updatedAt.toISOString(),
+    })),
+    pagination: {
+      page,
+      limit,
+      total,
+      total_pages: Math.ceil(total / limit),
+    },
+  };
+};
+
+// ─── Create Survey ───────────────────────────────────────
+export const createSurvey = async (userId: string, input: CreateSurveyInput) => {
+  const survey = await prisma.survey.create({
+    data: {
+      creatorId: userId,
+      title: input.title,
+      description: input.description ?? null,
+      category: input.category ?? null,
+      targetAudience: input.target_audience ?? null,
+      goal: input.goal ?? null,
+      usage: input.usage ?? null,
+      status: input.status ?? "draft",
+      responseLimit: input.response_limit ?? null,
+      startDate: input.start_date ? new Date(input.start_date) : null,
+      endDate: input.end_date ? new Date(input.end_date) : null,
+    },
+  });
+
+  return survey;
+};
+
+// ─── Get Survey Detail ───────────────────────────────────
+export const getSurveyDetail = async (surveyId: string, userId: string) => {
+  const survey = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+    include: {
+      sections: {
+        include: {
+          questions: {
+            include: {
+              options: { orderBy: { sortOrder: "asc" } },
+            },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+
+  if (!survey) throw new AppError("Survey not found", 404);
+
+  return survey;
+};
+
+// ─── Update Survey ───────────────────────────────────────
+export const updateSurvey = async (
+  surveyId: string,
+  userId: string,
+  input: UpdateSurveyInput
+) => {
+  const existing = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+  });
+  if (!existing) throw new AppError("Survey not found", 404);
+
+  const survey = await prisma.survey.update({
+    where: { id: surveyId },
+    data: {
+      ...(input.title !== undefined && { title: input.title }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.category !== undefined && { category: input.category }),
+      ...(input.target_audience !== undefined && { targetAudience: input.target_audience }),
+      ...(input.goal !== undefined && { goal: input.goal }),
+      ...(input.usage !== undefined && { usage: input.usage }),
+      ...(input.response_limit !== undefined && { responseLimit: input.response_limit }),
+      ...(input.start_date !== undefined && { startDate: new Date(input.start_date) }),
+      ...(input.end_date !== undefined && { endDate: new Date(input.end_date) }),
+    },
+  });
+
+  return survey;
+};
+
+// ─── Delete Survey ───────────────────────────────────────
+export const deleteSurvey = async (surveyId: string, userId: string) => {
+  const existing = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+  });
+  if (!existing) throw new AppError("Survey not found", 404);
+
+  await prisma.survey.delete({ where: { id: surveyId } });
+};
+
+// ─── Update Status ───────────────────────────────────────
+export const updateStatus = async (
+  surveyId: string,
+  userId: string,
+  input: UpdateStatusInput
+) => {
+  const existing = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+  });
+  if (!existing) throw new AppError("Survey not found", 404);
+
+  const survey = await prisma.survey.update({
+    where: { id: surveyId },
+    data: { status: input.status },
+  });
+
+  return survey;
+};
+
+// ─── Duplicate Survey ────────────────────────────────────
+export const duplicateSurvey = async (surveyId: string, userId: string) => {
+  const existing = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+    include: {
+      sections: {
+        include: {
+          questions: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!existing) throw new AppError("Survey not found", 404);
+
+  const newSurvey = await prisma.survey.create({
+    data: {
+      creatorId: userId,
+      title: `${existing.title} (Copy)`,
+      description: existing.description,
+      category: existing.category,
+      targetAudience: existing.targetAudience,
+      goal: existing.goal,
+      usage: existing.usage,
+      status: "draft",
+      responseLimit: existing.responseLimit,
+      startDate: existing.startDate,
+      endDate: existing.endDate,
+      sections: {
+        create: existing.sections.map((section) => ({
+          title: section.title,
+          sortOrder: section.sortOrder,
+          questions: {
+            create: section.questions.map((question) => ({
+              text: question.text,
+              type: question.type,
+              required: question.required,
+              sortOrder: question.sortOrder,
+              options: {
+                create: question.options.map((option) => ({
+                  value: option.value,
+                  sortOrder: option.sortOrder,
+                })),
+              },
+            })),
+          },
+        })),
+      },
+    },
+    include: {
+      sections: {
+        include: {
+          questions: {
+            include: { options: true },
+          },
+        },
+      },
+    },
+  });
+
+  return newSurvey;
+};
+
+// ─── Publish Survey (Add sections to existing survey) ───
+export const publishSurvey = async (
+  surveyId: string,
+  userId: string,
+  surveyData: CreateSurveyInput,
+  sections: Array<{
+    title: string;
+    questions: Array<{
+      text: string;
+      type: string;
+      required?: boolean;
+      options?: Array<{ value: string }>;
+    }>;
+  }>
+) => {
+  // Update the survey metadata
+  await prisma.survey.update({
+    where: { id: surveyId },
+    data: {
+      title: surveyData.title,
+      description: surveyData.description ?? null,
+      category: surveyData.category ?? null,
+      targetAudience: surveyData.target_audience ?? null,
+      goal: surveyData.goal ?? null,
+      usage: surveyData.usage ?? null,
+      status: surveyData.status ?? "draft",
+      responseLimit: surveyData.response_limit ?? null,
+      startDate: surveyData.start_date ? new Date(surveyData.start_date) : null,
+      endDate: surveyData.end_date ? new Date(surveyData.end_date) : null,
+    },
+  });
+
+  // Add sections with questions and options
+  const survey = await prisma.survey.update({
+    where: { id: surveyId },
+    data: {
+      sections: {
+        create: sections.map((section, sIdx) => ({
+          title: section.title,
+          sortOrder: sIdx,
+          questions: {
+            create: section.questions.map((question, qIdx) => ({
+              text: question.text,
+              type: question.type,
+              required: question.required ?? true,
+              sortOrder: qIdx,
+              options: question.options
+                ? {
+                    create: question.options.map((opt, oIdx) => ({
+                      value: opt.value,
+                      sortOrder: oIdx,
+                    })),
+                  }
+                : undefined,
+            })),
+          },
+        })),
+      },
+    },
+    include: {
+      sections: {
+        include: {
+          questions: {
+            include: { options: true },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+
+  return survey;
+};
