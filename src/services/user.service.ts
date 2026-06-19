@@ -60,6 +60,13 @@ export const updateProfile = async (
 };
 
 export const updateUsername = async (userId: string, userName: string) => {
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) throw new AppError("User not found", 404);
+
+  if (existing.userName === userName) {
+    throw new AppError("New username is the same as the current username", 400);
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
     data: { userName },
@@ -76,6 +83,13 @@ export const updateUsername = async (userId: string, userName: string) => {
 };
 
 export const updateAvatar = async (userId: string, avatarUrl: string) => {
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) throw new AppError("User not found", 404);
+
+  if (existing.avatarUrl === avatarUrl) {
+    throw new AppError("New avatar is the same as the current avatar", 400);
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
     data: { avatarUrl },

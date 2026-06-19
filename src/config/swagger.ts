@@ -790,15 +790,6 @@ export const swaggerSpec = {
           },
         },
       },
-      put: {
-        tags: ["Users / Profile"],
-        summary: "Update my profile",
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateProfileInput" } } },
-        },
-        responses: { "200": { description: "Profile updated" } },
-      },
       delete: {
         tags: ["Users / Profile"],
         summary: "Delete my account",
