@@ -120,6 +120,20 @@ export const swaggerSpec = {
           avatar_url: { type: "string", example: "https://example.com/avatar.png" },
         },
       },
+      UpdateUsernameInput: {
+        type: "object",
+        required: ["userName"],
+        properties: {
+          userName: { type: "string", minLength: 3, example: "new_username" },
+        },
+      },
+      UpdateAvatarInput: {
+        type: "object",
+        required: ["avatarUrl"],
+        properties: {
+          avatarUrl: { type: "string", example: "https://example.com/avatar.png" },
+        },
+      },
       // ─── Survey ────────────────────────────────────────
       SurveyListItem: {
         type: "object",
@@ -790,6 +804,38 @@ export const swaggerSpec = {
         summary: "Delete my account",
         security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Account deleted" } },
+      },
+    },
+    "/users/me/username": {
+      put: {
+        tags: ["Users / Profile"],
+        summary: "Update username",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateUsernameInput" },
+            },
+          },
+        },
+        responses: { "200": { description: "Username updated" } },
+      },
+    },
+    "/users/me/avatar": {
+      put: {
+        tags: ["Users / Profile"],
+        summary: "Update avatar profile (accepts a URL string)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateAvatarInput" },
+            },
+          },
+        },
+        responses: { "200": { description: "Avatar updated" } },
       },
     },
     "/users/{id}": {

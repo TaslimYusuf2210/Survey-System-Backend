@@ -59,6 +59,38 @@ export const updateProfile = async (
   };
 };
 
+export const updateUsername = async (userId: string, userName: string) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { userName },
+    select: { id: true, userName: true, email: true, avatarUrl: true, createdAt: true },
+  });
+
+  return {
+    id: user.id,
+    email: user.email,
+    user_name: user.userName,
+    avatar_url: user.avatarUrl,
+    created_at: user.createdAt.toISOString(),
+  };
+};
+
+export const updateAvatar = async (userId: string, avatarUrl: string) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl },
+    select: { id: true, userName: true, email: true, avatarUrl: true, createdAt: true },
+  });
+
+  return {
+    id: user.id,
+    email: user.email,
+    user_name: user.userName,
+    avatar_url: user.avatarUrl,
+    created_at: user.createdAt.toISOString(),
+  };
+};
+
 export const deleteAccount = async (userId: string) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError("User not found", 404);
