@@ -85,6 +85,14 @@ export const swaggerSpec = {
           },
         },
       },
+      UpdatePasswordInput: {
+        type: "object",
+        required: ["currentPassword", "newPassword"],
+        properties: {
+          currentPassword: { type: "string", example: "Str0ng!Pass" },
+          newPassword: { type: "string", minLength: 8, example: "NewStr0ng!Pass" },
+        },
+      },
       // ─── User / Profile ────────────────────────────────
       Profile: {
         type: "object",
@@ -730,6 +738,26 @@ export const swaggerSpec = {
         summary: "Refresh access token",
         security: [{ bearerAuth: [] }],
         responses: { "200": { description: "Token refreshed (placeholder)" } },
+      },
+    },
+    "/auth/password": {
+      put: {
+        tags: ["Authentication"],
+        summary: "Update current user's password",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdatePasswordInput" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Password updated successfully" },
+          "401": { description: "Current password is incorrect" },
+          "400": { description: "Validation error" },
+        },
       },
     },
 

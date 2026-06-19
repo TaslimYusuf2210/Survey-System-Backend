@@ -38,3 +38,13 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
     message: "Logged out successfully",
   });
 });
+
+export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  await authService.updatePassword(req.userId!, currentPassword, newPassword);
+
+  res.status(200).json({
+    success: true,
+    message: "Password updated successfully",
+  });
+});

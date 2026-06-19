@@ -4,6 +4,7 @@ import { authenticate } from "../middleware/auth.js";
 import {
   createAccountSchema,
   loginSchema,
+  updatePasswordSchema,
 } from "../validators/auth.validator.js";
 import * as authController from "../controllers/auth.controller.js";
 
@@ -17,5 +18,6 @@ router.post("/refresh", authenticate, authController.getMe); // Placeholder - re
 router.get("/me", authenticate, authController.getMe);
 router.get("/user", authenticate, authController.getMe);
 router.post("/logout", authenticate, authController.logout);
+router.put("/password", authenticate, validate(updatePasswordSchema), authController.updatePassword);
 
 export default router;
