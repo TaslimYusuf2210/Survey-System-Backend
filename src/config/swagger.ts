@@ -571,12 +571,12 @@ export const swaggerSpec = {
           theme_picture: { type: "string", nullable: true, example: "nature" },
         },
       },
-      UpdateSettingsInput: {
+      UpdateAppearanceAccentInput: {
         type: "object",
+        required: ["appearance", "accent_color"],
         properties: {
-          appearance: { type: "string", enum: ["light", "dark"] },
-          accent_color: { type: "string" },
-          theme_picture: { type: "string" },
+          appearance: { type: "string", enum: ["light", "dark"], example: "dark" },
+          accent_color: { type: "string", example: "blue" },
         },
       },
       // ─── Search ────────────────────────────────────────
@@ -1393,54 +1393,21 @@ export const swaggerSpec = {
           },
         },
       },
-      put: {
-        tags: ["Settings"],
-        summary: "Update user settings",
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateSettingsInput" } } },
-        },
-        responses: { "200": { description: "Settings updated" } },
-      },
     },
-    "/settings/appearance": {
+    "/settings/appearance-accent": {
       put: {
         tags: ["Settings"],
-        summary: "Update appearance (light/dark)",
+        summary: "Update appearance and accent color together",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: {
-                type: "object",
-                required: ["appearance"],
-                properties: { appearance: { type: "string", enum: ["light", "dark"] } },
-              },
+              schema: { $ref: "#/components/schemas/UpdateAppearanceAccentInput" },
             },
           },
         },
-        responses: { "200": { description: "Appearance updated" } },
-      },
-    },
-    "/settings/accent": {
-      put: {
-        tags: ["Settings"],
-        summary: "Update accent color",
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["accent_color"],
-                properties: { accent_color: { type: "string" } },
-              },
-            },
-          },
-        },
-        responses: { "200": { description: "Accent color updated" } },
+        responses: { "200": { description: "Appearance and accent color updated" } },
       },
     },
     "/settings/theme-picture": {

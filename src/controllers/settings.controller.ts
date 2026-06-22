@@ -7,19 +7,9 @@ export const getSettings = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json({ success: true, data: settings });
 });
 
-export const updateSettings = asyncHandler(async (req: Request, res: Response) => {
-  const settings = await settingsService.updateSettings(req.userId!, req.body);
-  res.status(200).json({ success: true, message: "Settings updated successfully", data: settings });
-});
-
-export const updateAppearance = asyncHandler(async (req: Request, res: Response) => {
-  const settings = await settingsService.updateAppearance(req.userId!, req.body.appearance);
-  res.status(200).json({ success: true, message: "Appearance updated", data: settings });
-});
-
-export const updateAccent = asyncHandler(async (req: Request, res: Response) => {
-  const settings = await settingsService.updateAccentColor(req.userId!, req.body.accent_color);
-  res.status(200).json({ success: true, message: "Accent color updated", data: settings });
+export const updateAppearanceAccent = asyncHandler(async (req: Request, res: Response) => {
+  const settings = await settingsService.updateAppearanceAccent(req.userId!, req.body);
+  res.status(200).json({ success: true, message: "Appearance and accent color updated", data: settings });
 });
 
 export const updateThemePicture = asyncHandler(async (req: Request, res: Response) => {

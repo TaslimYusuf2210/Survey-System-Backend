@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
-import type { UpdateSettingsInput } from "../validators/settings.validator.js";
+import type { UpdateAppearanceAccentInput } from "../validators/settings.validator.js";
+import { AppError } from "../middleware/errorHandler.js";
 
 export const getSettings = async (userId: string) => {
   let settings = await prisma.userSettings.findUnique({
@@ -19,20 +20,27 @@ export const getSettings = async (userId: string) => {
   };
 };
 
-export const updateSettings = async (userId: string, input: UpdateSettingsInput) => {
-  // Upsert to handle first-time creation
+export const updateAppearanceAccent = async (userId: string, input: UpdateAppearanceAccentInput) => {
+  const existing = await prisma.userSettings.findUnique({ where: { userId } });
+
+  if (
+    existing &&
+    existing.appearance === input.appearance &&
+    existing.accentColor === input.accent_color
+  ) {
+    throw new AppError("Appearance and accent color are the same as the current settings", 400);
+  }
+
   const settings = await prisma.userSettings.upsert({
     where: { userId },
     update: {
-      ...(input.appearance !== undefined && { appearance: input.appearance }),
-      ...(input.accent_color !== undefined && { accentColor: input.accent_color }),
-      ...(input.theme_picture !== undefined && { themePicture: input.theme_picture }),
+      appearance: input.appearance,
+      accentColor: input.accent_color,
     },
     create: {
       userId,
-      appearance: input.appearance ?? "light",
-      accentColor: input.accent_color ?? "blue",
-      themePicture: input.theme_picture ?? null,
+      appearance: input.appearance,
+      accentColor: input.accent_color,
     },
   });
 
@@ -43,14 +51,25 @@ export const updateSettings = async (userId: string, input: UpdateSettingsInput)
   };
 };
 
-export const updateAppearance = async (userId: string, appearance: string) => {
-  return updateSettings(userId, { appearance: appearance as "light" | "dark" });
-};
-
-export const updateAccentColor = async (userId: string, accentColor: string) => {
-  return updateSettings(userId, { accent_color: accentColor });
-};
-
 export const updateThemePicture = async (userId: string, themePicture: string) => {
-  return updateSettings(userId, { theme_picture: themePicture });
+  const existing = await prisma.userSettings.findUnique({ where: { userId } });
+
+  if (existing && existing.themePicture === themePicture) {
+    throw new AppError("Theme picture is the same as the current setting", 400);
+  }
+
+  const settings = await prisma.userSettings.upsert({
+    where: { userId },
+    update: { themePicture },
+    create: {
+      userId,
+      themePicture,
+    },
+  });
+
+  return {
+    appearance: settings.appearance,
+    accent_color: settings.accentColor,
+    theme_picture: settings.themePicture,
+  };
 };
