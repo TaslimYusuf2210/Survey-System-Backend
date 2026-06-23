@@ -337,9 +337,12 @@ Returns **401** if current password is incorrect. Returns **400** if new passwor
     {
       "id": "uuid",
       "title": "Customer Satisfaction Survey",
+      "description": "Help us improve our service",
       "status": "active",
       "category": "feedback",
       "response_count": 83,
+      "avg_response_time": 252,
+      "completion_rate": 65.0,
       "created_at": "2026-06-01T10:00:00Z",
       "updated_at": "2026-06-15T14:30:00Z"
     }

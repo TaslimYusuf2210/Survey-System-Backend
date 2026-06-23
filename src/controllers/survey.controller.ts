@@ -1,11 +1,19 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import * as surveyService from "../services/survey.service.js";
-import type { ListSurveysQuery } from "../validators/survey.validator.js";
+import { listSurveysQuerySchema } from "../validators/survey.validator.js";
 
 export const listSurveys = asyncHandler(async (req: Request, res: Response) => {
-  const query = req.query as unknown as ListSurveysQuery;
-  const result = await surveyService.listSurveys(req.userId!, query);
+  const parsed = listSurveysQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: parsed.error.issues,
+    });
+    return;
+  }
+  const result = await surveyService.listSurveys(req.userId!, parsed.data);
   res.status(200).json(result);
 });
 

@@ -140,9 +140,12 @@ export const swaggerSpec = {
         properties: {
           id: { type: "string", format: "uuid" },
           title: { type: "string" },
+          description: { type: "string", nullable: true },
           status: { type: "string", enum: ["draft", "active", "inactive", "closed"] },
           category: { type: "string", nullable: true },
           response_count: { type: "integer" },
+          avg_response_time: { type: "integer", description: "Average response time in seconds" },
+          completion_rate: { type: "number", description: "Completion rate percentage (0-100)" },
           created_at: { type: "string", format: "date-time" },
           updated_at: { type: "string", format: "date-time" },
         },
