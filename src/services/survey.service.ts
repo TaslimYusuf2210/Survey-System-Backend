@@ -29,21 +29,47 @@ export const listSurveys = async (userId: string, query: ListSurveysQuery) => {
       take: limit,
       include: {
         _count: { select: { responses: true } },
+        responses: {
+          select: {
+            timeTakenSec: true,
+            completedAt: true,
+          },
+        },
       },
     }),
     prisma.survey.count({ where }),
   ]);
 
   return {
-    data: data.map((survey) => ({
-      id: survey.id,
-      title: survey.title,
-      status: survey.status,
-      category: survey.category,
-      response_count: survey._count.responses,
-      created_at: survey.createdAt.toISOString(),
-      updated_at: survey.updatedAt.toISOString(),
-    })),
+    data: data.map((survey) => {
+      const completedResponses = survey.responses.filter((r) => r.completedAt !== null);
+      const totalResponses = survey.responses.length;
+      const completionRate =
+        totalResponses > 0
+          ? parseFloat(((completedResponses.length / totalResponses) * 100).toFixed(1))
+          : 0;
+
+      const times = survey.responses
+        .filter((r) => r.timeTakenSec !== null)
+        .map((r) => r.timeTakenSec!);
+      const avgResponseTime =
+        times.length > 0
+          ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+          : 0;
+
+      return {
+        id: survey.id,
+        title: survey.title,
+        description: survey.description,
+        status: survey.status,
+        category: survey.category,
+        response_count: survey._count.responses,
+        avg_response_time: avgResponseTime,
+        completion_rate: completionRate,
+        created_at: survey.createdAt.toISOString(),
+        updated_at: survey.updatedAt.toISOString(),
+      };
+    }),
     pagination: {
       page,
       limit,

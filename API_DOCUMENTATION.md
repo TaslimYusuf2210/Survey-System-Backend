@@ -218,27 +218,29 @@ CREATE TABLE user_settings (
 |--------|----------|-------------|:---:|
 | `POST` | `/api/auth/signup` | Register a new user | ❌ |
 | `POST` | `/api/auth/login` | Login with email/password | ❌ |
-| `POST` | `/api/auth/google` | Google OAuth login | ❌ |
+| `POST` | `/api/auth/google` | Google OAuth login (placeholder) | ❌ |
 | `POST` | `/api/auth/logout` | Logout current session | ✅ |
-| `POST` | `/api/auth/refresh` | Refresh access token | ✅ |
+| `POST` | `/api/auth/refresh` | Refresh access token (placeholder) | ✅ |
 | `GET`  | `/api/auth/me` | Get current authenticated user | ✅ |
+| `PUT`  | `/api/auth/password` | Update current user's password | ✅ |
 
 #### `POST /api/auth/signup`
 ```json
 {
   "email": "user@example.com",
-  "password": "Str0ng!Pass",
-  "user_name": "johndoe"
+  "userName": "johndoe",
+  "password": "Str0ng!Pass"
 }
 ```
 **Response (201):**
 ```json
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "user_name": "johndoe",
-  "created_at": "2026-06-16T12:00:00Z",
-  "message": "Verification email sent. Please check your inbox."
+  "success": true,
+  "message": "Account created successfully",
+  "data": {
+    "token": "jwt...",
+    "user": { "id": "uuid", "email": "user@example.com", "userName": "johndoe" }
+  }
 }
 ```
 
@@ -252,19 +254,30 @@ CREATE TABLE user_settings (
 **Response (200):**
 ```json
 {
-  "access_token": "jwt...",
-  "refresh_token": "jwt...",
-  "user": { "id": "uuid", "email": "user@example.com", "user_name": "johndoe" }
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "jwt...",
+    "user": { "id": "uuid", "email": "user@example.com", "userName": "johndoe" }
+  }
 }
 ```
 
-#### `POST /api/auth/google`
+#### `PUT /api/auth/password`
 ```json
 {
-  "id_token": "google-id-token"
+  "currentPassword": "Str0ng!Pass",
+  "newPassword": "NewStr0ng!Pass"
 }
 ```
-**Response (200):** Same as login.
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password updated successfully"
+}
+```
+Returns **401** if current password is incorrect. Returns **400** if new password is the same as the current.
 
 ---
 
@@ -273,18 +286,26 @@ CREATE TABLE user_settings (
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|:---:|
 | `GET` | `/api/users/me` | Get my profile | ✅ |
-| `PUT` | `/api/users/me` | Update my profile | ✅ |
+| `PUT` | `/api/users/me/username` | Update username | ✅ |
+| `PUT` | `/api/users/me/avatar` | Update avatar (accepts a URL string) | ✅ |
 | `DELETE` | `/api/users/me` | Delete my account | ✅ |
 | `GET` | `/api/users/:id` | Get user by ID (admin) | ✅ |
 
-#### `PUT /api/users/me`
+#### `PUT /api/users/me/username`
 ```json
 {
-  "user_name": "new_username",
-  "avatar_url": "https://example.com/avatar.png"
+  "userName": "new_username"
 }
 ```
-**Response (200):** Updated profile object.
+**Response (200):** Updated profile object. Returns **400** if the username is the same as the current one.
+
+#### `PUT /api/users/me/avatar`
+```json
+{
+  "avatarUrl": "https://example.com/avatar.png"
+}
+```
+**Response (200):** Updated profile object. Returns **400** if the avatar URL is the same as the current one.
 
 ---
 
@@ -635,20 +656,25 @@ Publishes the complete survey structure (sections, questions, and options) in a 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|:---:|
 | `GET` | `/api/settings` | Get user settings | ✅ |
-| `PUT` | `/api/settings` | Update user settings | ✅ |
-| `PUT` | `/api/settings/appearance` | Update appearance (light/dark) | ✅ |
-| `PUT` | `/api/settings/accent` | Update accent color | ✅ |
+| `PUT` | `/api/settings/appearance-accent` | Update appearance and accent color together | ✅ |
 | `PUT` | `/api/settings/theme-picture` | Update theme picture | ✅ |
 
-#### `PUT /api/settings`
+#### `PUT /api/settings/appearance-accent`
 ```json
 {
   "appearance": "dark",
-  "accent_color": "blue",
+  "accent_color": "blue"
+}
+```
+**Response (200):** Updated settings object. Returns **400** if both values are the same as the current settings.
+
+#### `PUT /api/settings/theme-picture`
+```json
+{
   "theme_picture": "nature"
 }
 ```
-**Response (200):** Updated settings object.
+**Response (200):** Updated settings object. Returns **400** if the theme picture is the same as the current one.
 
 > Settings are also stored client-side in localStorage, but the backend serves as the source of truth for cross-device sync.
 
@@ -742,16 +768,14 @@ Publishes the complete survey structure (sections, questions, and options) in a 
 ### Standard Error Response Format
 ```json
 {
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Human-readable error message",
-    "details": [
-      {
-        "field": "email",
-        "message": "Email is required"
-      }
-    ]
-  }
+  "success": false,
+  "message": "Human-readable error message",
+  "errors": [
+    {
+      "code": "invalid_type",
+      "message": "Field validation error"
+    }
+  ]
 }
 ```
 
@@ -760,26 +784,28 @@ Publishes the complete survey structure (sections, questions, and options) in a 
 |:----:|---------|
 | 200 | Success |
 | 201 | Created |
-| 400 | Bad Request / Validation Error |
-| 401 | Unauthorized (no/invalid token) |
-| 403 | Forbidden (e.g., response limit reached) |
+| 400 | Bad Request / Validation Error / Same-value conflict |
+| 401 | Unauthorized (no/invalid token or wrong password) |
+| 403 | Forbidden (e.g., response limit reached, survey closed) |
 | 404 | Resource Not Found |
 | 409 | Conflict (e.g., duplicate email) |
-| 422 | Unprocessable Entity |
-| 429 | Too Many Requests (rate limiting) |
-| 500 | Internal Server Error |
+| 503 | Server unavailable (connection error) |
 
-### Common Error Codes
-| Code | Description |
-|------|-------------|
-| `VALIDATION_ERROR` | Request body failed validation |
-| `UNAUTHORIZED` | Missing or invalid authentication token |
-| `FORBIDDEN` | User does not have access to this resource |
-| `NOT_FOUND` | Resource does not exist |
-| `RESPONSE_LIMIT_REACHED` | Survey has reached its maximum response limit |
-| `SURVEY_CLOSED` | Survey is no longer accepting responses |
-| `DUPLICATE_EMAIL` | Email already exists (signup) |
-| `RATE_LIMIT_EXCEEDED` | Too many requests |
+### Common Error Scenarios
+| Scenario | Status | Message |
+|----------|:-----:|---------|
+| Validation failed | 400 | `"Validation failed"` with field-level errors |
+| Same username on update | 400 | `"New username is the same as the current username"` |
+| Same avatar on update | 400 | `"New avatar is the same as the current avatar"` |
+| Same password on update | 400 | `"New password must be different from the current password"` |
+| Invalid credentials | 401 | `"Invalid email or password"` |
+| Wrong current password | 401 | `"Current password is incorrect"` |
+| No auth token | 401 | `"Authentication required. Provide a valid Bearer token."` |
+| Survey response limit reached | 403 | `"Response limit reached"` |
+| Survey closed | 403 | `"Survey is not accepting responses"` |
+| Not found | 404 | `"Survey not found"` / `"User not found"` etc. |
+| Duplicate email | 409 | `"Email already in use"` |
+| Server connection error | 503 | `"Unable to connect to the Server. Please check your internet connection and try again."` |
 
 ---
 
