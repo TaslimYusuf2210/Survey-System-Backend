@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const updateAppearanceAccentSchema = z.object({
-  appearance: z.enum(["light", "dark"]),
+  appearance: z.enum(["light", "dark", "default"]),
   accent_color: z.string().min(1),
 });
 
