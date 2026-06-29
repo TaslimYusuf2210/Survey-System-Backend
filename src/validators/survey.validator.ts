@@ -183,6 +183,43 @@ export const exportQuerySchema = z.object({
   format: z.enum(["csv", "json"]).optional().default("json"),
 });
 
+// ─── Draft Survey (all fields optional) ───────────────────
+export const draftSurveySchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  audience: z.string().optional(),
+  goal: z.string().optional(),
+  usage: z.string().optional(),
+  responseLimit: z.number().int().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: surveyStatusEnum.optional(),
+  sections: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(255),
+        questions: z
+          .array(
+            z.object({
+              text: z.string().min(1),
+              type: questionTypeEnum,
+              required: z.boolean().optional().default(true),
+              options: z
+                .array(
+                  z.object({
+                    value: z.string().min(1),
+                  })
+                )
+                .optional(),
+            })
+          )
+          .optional(),
+      })
+    )
+    .optional(),
+});
+
 export type CreateSurveyInput = z.infer<typeof createSurveySchema>;
 export type UpdateSurveyInput = z.infer<typeof updateSurveySchema>;
 export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
@@ -197,3 +234,4 @@ export type UpdateOptionInput = z.infer<typeof updateOptionSchema>;
 export type PublishSurveyInput = z.infer<typeof publishSurveySchema>;
 export type SubmitResponseInput = z.infer<typeof submitResponseSchema>;
 export type ListSurveysQuery = z.infer<typeof listSurveysQuerySchema>;
+export type DraftSurveyInput = z.infer<typeof draftSurveySchema>;

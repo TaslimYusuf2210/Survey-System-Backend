@@ -52,9 +52,19 @@ export const duplicateSurvey = asyncHandler(async (req: Request, res: Response) 
   res.status(201).json({ success: true, message: "Survey duplicated successfully", data: survey });
 });
 
-export const publishSurvey = asyncHandler(async (req: Request, res: Response) => {
+export const saveDraft = asyncHandler(async (req: Request, res: Response) => {
+  const result = await surveyService.saveDraft(req.userId!, req.body);
+  res.status(201).json(result);
+});
+
+export const updateDraft = asyncHandler(async (req: Request, res: Response) => {
   const id = req.params["id"] as string;
-  const { survey: surveyData, sections } = req.body;
-  const survey = await surveyService.publishSurvey(id, req.userId!, surveyData, sections);
-  res.status(201).json({ success: true, message: "Survey published successfully", data: survey });
+  const survey = await surveyService.updateDraft(id, req.userId!, req.body);
+  res.status(200).json({ success: true, message: "Survey draft updated", data: survey });
+});
+
+export const publishDraft = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params["id"] as string;
+  const survey = await surveyService.publishDraft(id, req.userId!);
+  res.status(200).json({ success: true, message: "Survey published successfully", data: survey });
 });

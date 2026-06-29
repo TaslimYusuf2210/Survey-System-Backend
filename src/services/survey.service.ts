@@ -5,6 +5,7 @@ import type {
   UpdateSurveyInput,
   UpdateStatusInput,
   ListSurveysQuery,
+  DraftSurveyInput,
 } from "../validators/survey.validator.js";
 
 // ─── List Surveys ────────────────────────────────────────
@@ -321,4 +322,161 @@ export const publishSurvey = async (
   });
 
   return survey;
+};
+
+// ─── Save Draft ──────────────────────────────────────────
+export const saveDraft = async (userId: string, input: DraftSurveyInput) => {
+  const survey = await prisma.survey.create({
+    data: {
+      creatorId: userId,
+      title: input.title ?? "Untitled Survey",
+      description: input.description ?? null,
+      category: input.category ?? null,
+      targetAudience: input.audience ?? null,
+      goal: input.goal ?? null,
+      usage: input.usage ?? null,
+      status: input.status ?? "draft",
+      responseLimit: input.responseLimit ?? null,
+      startDate: input.startDate ? new Date(input.startDate) : null,
+      endDate: input.endDate ? new Date(input.endDate) : null,
+      sections: input.sections
+        ? {
+            create: input.sections.map((section, sIdx) => ({
+              title: section.title,
+              sortOrder: sIdx,
+              questions: section.questions
+                ? {
+                    create: section.questions.map((question, qIdx) => ({
+                      text: question.text,
+                      type: question.type,
+                      required: question.required ?? true,
+                      sortOrder: qIdx,
+                      options: question.options
+                        ? {
+                            create: question.options.map((opt, oIdx) => ({
+                              value: opt.value,
+                              sortOrder: oIdx,
+                            })),
+                          }
+                        : undefined,
+                    })),
+                  }
+                : undefined,
+            })),
+          }
+        : undefined,
+    },
+  });
+
+  return { id: survey.id };
+};
+
+// ─── Update Draft ────────────────────────────────────────
+export const updateDraft = async (surveyId: string, userId: string, input: DraftSurveyInput) => {
+  const existing = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+  });
+  if (!existing) throw new AppError("Survey not found", 404);
+
+  // Update survey metadata
+  await prisma.survey.update({
+    where: { id: surveyId },
+    data: {
+      ...(input.title !== undefined && { title: input.title }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.category !== undefined && { category: input.category }),
+      ...(input.audience !== undefined && { targetAudience: input.audience }),
+      ...(input.goal !== undefined && { goal: input.goal }),
+      ...(input.usage !== undefined && { usage: input.usage }),
+      ...(input.status !== undefined && { status: input.status }),
+      ...(input.responseLimit !== undefined && { responseLimit: input.responseLimit }),
+      ...(input.startDate !== undefined && { startDate: new Date(input.startDate) }),
+      ...(input.endDate !== undefined && { endDate: new Date(input.endDate) }),
+    },
+  });
+
+  // If sections provided, replace all existing sections with new ones
+  if (input.sections) {
+    await prisma.surveySection.deleteMany({ where: { surveyId } });
+
+    await prisma.survey.update({
+      where: { id: surveyId },
+      data: {
+        sections: {
+          create: input.sections.map((section, sIdx) => ({
+            title: section.title,
+            sortOrder: sIdx,
+            questions: section.questions
+              ? {
+                  create: section.questions.map((question, qIdx) => ({
+                    text: question.text,
+                    type: question.type,
+                    required: question.required ?? true,
+                    sortOrder: qIdx,
+                    options: question.options
+                      ? {
+                          create: question.options.map((opt, oIdx) => ({
+                            value: opt.value,
+                            sortOrder: oIdx,
+                          })),
+                        }
+                      : undefined,
+                  })),
+                }
+              : undefined,
+          })),
+        },
+      },
+    });
+  }
+
+  // Return the updated survey with full details
+  const survey = await prisma.survey.findUnique({
+    where: { id: surveyId },
+    include: {
+      sections: {
+        include: {
+          questions: {
+            include: { options: { orderBy: { sortOrder: "asc" } } },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+
+  return survey;
+};
+
+// ─── Publish Draft ───────────────────────────────────────
+export const publishDraft = async (surveyId: string, userId: string) => {
+  const survey = await prisma.survey.findFirst({
+    where: { id: surveyId, creatorId: userId },
+    include: {
+      sections: {
+        include: { questions: true },
+      },
+    },
+  });
+  if (!survey) throw new AppError("Survey not found", 404);
+
+  // Validate required fields
+  if (!survey.title || survey.title === "Untitled Survey") {
+    throw new AppError("Survey title is required for publishing", 400);
+  }
+  if (survey.sections.length === 0) {
+    throw new AppError("Survey must have at least one section", 400);
+  }
+  const hasQuestions = survey.sections.some((s) => s.questions.length > 0);
+  if (!hasQuestions) {
+    throw new AppError("Survey must have at least one question", 400);
+  }
+
+  const updated = await prisma.survey.update({
+    where: { id: surveyId },
+    data: { status: "active" },
+  });
+
+  return updated;
 };
