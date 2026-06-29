@@ -148,8 +148,8 @@ export const submitResponse = async (
   if (!survey) throw new AppError("Survey not found", 404);
   if (survey.status !== "active") throw new AppError("Survey is not accepting responses", 403);
 
-  // Check response limit
-  if (survey.responseLimit) {
+  // Check response limit (null or -1 means unlimited)
+  if (survey.responseLimit && survey.responseLimit > 0) {
     const count = await prisma.surveyResponse.count({
       where: { surveyId },
     });
