@@ -377,6 +377,49 @@ export const swaggerSpec = {
           },
         },
       },
+      // ─── Draft Survey ───────────────────────────────────
+      DraftSurveyInput: {
+        type: "object",
+        properties: {
+          title: { type: "string", maxLength: 255, example: "Customer Satisfaction Survey" },
+          description: { type: "string", example: "Help us improve our service" },
+          category: { type: "string", example: "feedback" },
+          audience: { type: "string", example: "customers" },
+          goal: { type: "string", example: "To understand satisfaction levels" },
+          usage: { type: "string", example: "improve-service" },
+          responseLimit: { type: "integer", example: -1, nullable: true },
+          startDate: { type: "string", format: "date", example: "2026-07-01" },
+          endDate: { type: "string", format: "date", example: "2026-07-15" },
+          status: { type: "string", enum: ["draft", "active", "inactive", "closed"] },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string", example: "Section 1" },
+                questions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      text: { type: "string", example: "How satisfied are you?" },
+                      type: { type: "string", enum: ["text", "multiple_choice", "single_choice", "likert_scale", "yes_no"] },
+                      required: { type: "boolean", default: true },
+                      options: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: { value: { type: "string", example: "Option A" } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       // ─── Response ──────────────────────────────────────
       SurveyResponseItem: {
         type: "object",
@@ -921,6 +964,29 @@ export const swaggerSpec = {
         responses: { "201": { description: "Survey created" } },
       },
     },
+    "/surveys/draft": {
+      post: {
+        tags: ["Surveys"],
+        summary: "Save a draft survey (all fields optional)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          content: { "application/json": { schema: { $ref: "#/components/schemas/DraftSurveyInput" } } },
+        },
+        responses: {
+          "201": {
+            description: "Draft created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { id: { type: "string", format: "uuid" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/surveys/{id}": {
       get: {
         tags: ["Surveys"],
@@ -937,13 +1003,13 @@ export const swaggerSpec = {
       },
       put: {
         tags: ["Surveys"],
-        summary: "Update survey metadata",
+        summary: "Update a draft survey (partial data + sections)",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
-          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateSurveyInput" } } },
+          content: { "application/json": { schema: { $ref: "#/components/schemas/DraftSurveyInput" } } },
         },
-        responses: { "200": { description: "Survey updated" } },
+        responses: { "200": { description: "Survey draft updated" } },
       },
       delete: {
         tags: ["Surveys"],
@@ -978,14 +1044,14 @@ export const swaggerSpec = {
     "/surveys/{id}/publish": {
       post: {
         tags: ["Surveys"],
-        summary: "Publish full survey (metadata + sections + questions + options)",
+        summary: "Publish a draft (validates required fields & sets status to active)",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
-        requestBody: {
-          required: true,
-          content: { "application/json": { schema: { $ref: "#/components/schemas/PublishSurveyInput" } } },
+        responses: {
+          "200": { description: "Survey published successfully" },
+          "400": { description: "Validation failed — missing required fields" },
+          "404": { description: "Survey not found" },
         },
-        responses: { "201": { description: "Survey published with all content" } },
       },
     },
 

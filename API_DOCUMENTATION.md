@@ -315,11 +315,13 @@ Returns **401** if current password is incorrect. Returns **400** if new passwor
 |--------|----------|-------------|:---:|
 | `GET` | `/api/surveys` | List my surveys (with filters) | ✅ |
 | `POST` | `/api/surveys` | Create a new survey | ✅ |
+| `POST` | `/api/surveys/draft` | Save a draft (partial data, all fields optional) | ✅ |
 | `GET` | `/api/surveys/:id` | Get survey detail (full structure) | ✅ |
-| `PUT` | `/api/surveys/:id` | Update survey metadata | ✅ |
+| `PUT` | `/api/surveys/:id` | Update a draft (partial data + sections) | ✅ |
 | `DELETE` | `/api/surveys/:id` | Delete a survey | ✅ |
 | `PATCH` | `/api/surveys/:id/status` | Change survey status | ✅ |
 | `POST` | `/api/surveys/:id/duplicate` | Duplicate a survey | ✅ |
+| `POST` | `/api/surveys/:id/publish` | Publish a draft (validates & sets status to active) | ✅ |
 
 #### `GET /api/surveys`
 **Query Parameters:**
@@ -378,6 +380,52 @@ Creates a survey **without** sections/questions (those are added via separate en
 ```
 **Response (200):** Updated survey.
 
+#### `POST /api/surveys/draft`
+Creates a new draft survey. All fields are optional — only fields that are provided are saved. Sections, questions, and options can be included inline.
+
+```json
+{
+  "title": "Customer Satisfaction Survey",
+  "description": "Help us improve our service",
+  "category": "feedback",
+  "audience": "customers",
+  "goal": "To understand satisfaction levels",
+  "usage": "improve-service",
+  "responseLimit": -1,
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-15",
+  "sections": [
+    {
+      "title": "Section 1",
+      "questions": [
+        { "text": "How satisfied are you?", "type": "likert_scale", "required": true }
+      ]
+    }
+  ]
+}
+```
+**Response (201):**
+```json
+{ "id": "uuid" }
+```
+
+#### `PUT /api/surveys/:id`
+Updates an existing draft survey. Has the same shape as `POST /api/surveys/draft`. If `sections` is provided, all existing sections are **replaced** with the new ones.
+
+**Response (200):** Full survey object with sections, questions, and options.
+
+#### `POST /api/surveys/:id/publish`
+Validates that the draft has required fields (title, at least one section with at least one question), then changes the status from `"draft"` to `"active"`. No request body needed.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Survey published successfully",
+  "data": { /* updated survey object */ }
+}
+```
+
 ---
 
 ### 3.4 Survey Sections & Questions
@@ -395,8 +443,6 @@ Creates a survey **without** sections/questions (those are added via separate en
 | `POST` | `/api/questions/:id/options` | Add option to question | ✅ |
 | `PUT` | `/api/options/:id` | Update an option | ✅ |
 | `DELETE` | `/api/options/:id` | Delete an option | ✅ |
-| `POST` | `/api/surveys/:id/publish` | Publish full survey (all at once) | ✅ |
-
 #### `POST /api/surveys/:id/sections`
 ```json
 {
@@ -430,32 +476,6 @@ Creates a survey **without** sections/questions (those are added via separate en
 }
 ```
 **Response (201):** Full section with nested questions and options.
-
-#### `POST /api/surveys/:id/publish`
-Publishes the complete survey structure (sections, questions, and options) in a single request. Useful for the Create Survey multi-step wizard.
-
-```json
-{
-  "survey": { /* survey metadata */ },
-  "sections": [
-    {
-      "title": "Section 1",
-      "questions": [
-        {
-          "text": "Question?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            { "value": "Option A" },
-            { "value": "Option B" }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-**Response (201):** Complete published survey object.
 
 > **Note:** Question types and their validation rules are documented in [Section 4](#4-question-types-reference).
 
