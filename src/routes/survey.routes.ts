@@ -3,7 +3,6 @@ import { authenticate } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import {
   createSurveySchema,
-  updateSurveySchema,
   updateStatusSchema,
   createSectionSchema,
   draftSurveySchema,

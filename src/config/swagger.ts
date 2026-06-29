@@ -162,18 +162,46 @@ export const swaggerSpec = {
       },
       CreateSurveyInput: {
         type: "object",
-        required: ["title"],
+        required: ["title", "description", "category", "audience", "goal", "usage", "responseLimit", "sections"],
         properties: {
           title: { type: "string", maxLength: 255, example: "Customer Satisfaction Survey" },
           description: { type: "string", example: "Help us improve our service" },
           category: { type: "string", example: "feedback" },
-          target_audience: { type: "string", example: "customers" },
+          audience: { type: "string", example: "customers" },
           goal: { type: "string", example: "To understand customer satisfaction levels" },
           usage: { type: "string", example: "improve-service" },
-          status: { type: "string", enum: ["draft", "active", "inactive", "closed"], default: "draft" },
-          response_limit: { type: "integer", example: 100, nullable: true },
-          start_date: { type: "string", format: "date", example: "2026-07-01" },
-          end_date: { type: "string", format: "date", example: "2026-07-31" },
+          responseLimit: { type: "integer", example: -1 },
+          startDate: { type: "string", format: "date", example: "2026-07-01" },
+          endDate: { type: "string", format: "date", example: "2026-07-31" },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["title", "questions"],
+              properties: {
+                title: { type: "string", example: "Section 1" },
+                questions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    required: ["text", "type"],
+                    properties: {
+                      text: { type: "string", example: "How satisfied are you?" },
+                      type: { type: "string", enum: ["text", "multiple_choice", "single_choice", "likert_scale", "yes_no"] },
+                      required: { type: "boolean", default: true },
+                      options: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: { value: { type: "string", example: "Option A" } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
       SurveyDetail: {

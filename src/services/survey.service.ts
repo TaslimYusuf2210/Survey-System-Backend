@@ -86,15 +86,52 @@ export const createSurvey = async (userId: string, input: CreateSurveyInput) => 
     data: {
       creatorId: userId,
       title: input.title,
-      description: input.description ?? null,
-      category: input.category ?? null,
-      targetAudience: input.target_audience ?? null,
-      goal: input.goal ?? null,
-      usage: input.usage ?? null,
-      status: input.status ?? "draft",
-      responseLimit: input.response_limit ?? null,
-      startDate: input.start_date ? new Date(input.start_date) : null,
-      endDate: input.end_date ? new Date(input.end_date) : null,
+      description: input.description,
+      category: input.category,
+      targetAudience: input.audience,
+      goal: input.goal,
+      usage: input.usage,
+      status: (() => {
+        if (!input.startDate) return "active";
+        const start = new Date(input.startDate);
+        return start > new Date() ? "inactive" : "active";
+      })(),
+      responseLimit: input.responseLimit,
+      startDate: input.startDate ? new Date(input.startDate) : null,
+      endDate: input.endDate ? new Date(input.endDate) : null,
+      sections: {
+        create: input.sections.map((section, sIdx) => ({
+          title: section.title,
+          sortOrder: sIdx,
+          questions: {
+            create: section.questions.map((question, qIdx) => ({
+              text: question.text,
+              type: question.type,
+              required: question.required ?? true,
+              sortOrder: qIdx,
+              options: question.options
+                ? {
+                    create: question.options.map((opt, oIdx) => ({
+                      value: opt.value,
+                      sortOrder: oIdx,
+                    })),
+                  }
+                : undefined,
+            })),
+          },
+        })),
+      },
+    },
+    include: {
+      sections: {
+        include: {
+          questions: {
+            include: { options: { orderBy: { sortOrder: "asc" } } },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
     },
   });
 
@@ -271,13 +308,13 @@ export const publishSurvey = async (
       title: surveyData.title,
       description: surveyData.description ?? null,
       category: surveyData.category ?? null,
-      targetAudience: surveyData.target_audience ?? null,
+      targetAudience: surveyData.audience ?? null,
       goal: surveyData.goal ?? null,
       usage: surveyData.usage ?? null,
       status: surveyData.status ?? "draft",
-      responseLimit: surveyData.response_limit ?? null,
-      startDate: surveyData.start_date ? new Date(surveyData.start_date) : null,
-      endDate: surveyData.end_date ? new Date(surveyData.end_date) : null,
+      responseLimit: surveyData.responseLimit ?? null,
+      startDate: surveyData.startDate ? new Date(surveyData.startDate) : null,
+      endDate: surveyData.endDate ? new Date(surveyData.endDate) : null,
     },
   });
 

@@ -35,15 +35,33 @@ export const listSurveysQuerySchema = z.object({
 // ─── Create Survey ───────────────────────────────────────
 export const createSurveySchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  target_audience: z.string().optional(),
-  goal: z.string().optional(),
-  usage: z.string().optional(),
-  status: surveyStatusEnum.optional().default("draft"),
-  response_limit: z.number().int().positive().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
+  category: z.string().min(1, "Category is required"),
+  audience: z.string().min(1, "Audience is required"),
+  goal: z.string().min(1, "Goal is required"),
+  usage: z.string().min(1, "Usage is required"),
+  responseLimit: z.number().int(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  sections: z.array(
+    z.object({
+      title: z.string().min(1).max(255),
+      questions: z.array(
+        z.object({
+          text: z.string().min(1),
+          type: questionTypeEnum,
+          required: z.boolean().optional().default(true),
+          options: z
+            .array(
+              z.object({
+                value: z.string().min(1),
+              })
+            )
+            .optional(),
+        })
+      ),
+    })
+  ),
 });
 
 // ─── Update Survey ───────────────────────────────────────

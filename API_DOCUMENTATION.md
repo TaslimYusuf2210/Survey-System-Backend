@@ -354,23 +354,45 @@ Returns **401** if current password is incorrect. Returns **400** if new passwor
 ```
 
 #### `POST /api/surveys`
-Creates a survey **without** sections/questions (those are added via separate endpoints or a bulk creation endpoint).
+Creates a survey with all fields required (except `startDate`/`endDate`). Sections, questions, and options are created inline. Status is auto-determined:
+
+- **No `startDate`** → `"active"` (available immediately)
+- **`startDate` in the future** → `"inactive"` (not yet open)
+- **`startDate` today or past** → `"active"`
 
 ```json
 {
   "title": "Customer Satisfaction Survey",
   "description": "Help us improve our service",
   "category": "feedback",
-  "target_audience": "customers",
+  "audience": "customers",
   "goal": "To understand customer satisfaction levels",
   "usage": "improve-service",
-  "status": "draft",
-  "response_limit": 100,
-  "start_date": "2026-07-01",
-  "end_date": "2026-07-31"
+  "responseLimit": -1,
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-31",
+  "sections": [
+    {
+      "title": "Section 1",
+      "questions": [
+        {
+          "text": "How satisfied are you?",
+          "type": "likert_scale",
+          "required": true,
+          "options": [
+            { "value": "Very Satisfied" },
+            { "value": "Satisfied" },
+            { "value": "Neutral" },
+            { "value": "Dissatisfied" },
+            { "value": "Very Dissatisfied" }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
-**Response (201):** Full survey object.
+**Response (201):** Full survey object with nested sections, questions, and options.
 
 #### `PATCH /api/surveys/:id/status`
 ```json
