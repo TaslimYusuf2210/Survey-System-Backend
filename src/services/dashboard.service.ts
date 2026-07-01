@@ -40,6 +40,9 @@ export const getRecentSurveys = async (userId: string, limit: number) => {
       _count: {
         select: { responses: true },
       },
+      creator: {
+        select: { userName: true, avatarUrl: true },
+      },
     },
   });
 
@@ -48,8 +51,8 @@ export const getRecentSurveys = async (userId: string, limit: number) => {
     title: survey.title,
     status: survey.status,
     description: survey.description,
-    author_name: "", // Will be populated from user
-    author_avatar: "", // Will be populated from user
+    author_name: survey.creator.userName,
+    author_avatar: survey.creator.avatarUrl ?? "",
     response_count: survey._count.responses,
     response_limit: survey.responseLimit,
     created_at: survey.createdAt.toISOString(),
